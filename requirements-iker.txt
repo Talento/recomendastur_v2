@@ -1,5 +1,4 @@
 python-dotenv
-accelerate
 asttokens
 bitsandbytes
 certifi
@@ -55,9 +54,6 @@ stack-data
 sympy
 threadpoolctl
 tokenizers
-torch
-torchaudio
-torchvision
 tornado
 tqdm
 traitlets
@@ -68,3 +64,4 @@ urllib3
 wcwidth
 streamlit
 openpyxl
+ollama
