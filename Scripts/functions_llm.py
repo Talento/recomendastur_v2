@@ -1,3 +1,4 @@
+'''
 import os
 import torch
 import streamlit as st
@@ -88,3 +89,61 @@ def LLM_output(pipe,system,prompt,max_new_tokens):
     )
     #print('-----------------------',outputs[0].keys())
     return outputs[0]['generated_text'][2]['content']
+
+    '''
+
+
+import os
+import streamlit as st
+import ollama # <--- La única librería que necesitas ahora para la IA
+
+from dotenv import load_dotenv
+# Cargar las variables del archivo .env
+load_dotenv()
+USER_NAME = os.getenv("USER_NAME")
+
+@st.cache_resource
+def load_llm(remote=False):
+    print(USER_NAME)
+    
+    # En Ollama no necesitamos rutas de archivos complicadas ni tokens de HF.
+    # Solo necesitamos saber el nombre del modelo que descargaste en la terminal.
+    # Asegúrate de haber hecho 'ollama run llama3.2' antes.
+    model_name = "llama3.2" 
+
+    try:
+        # Hacemos una pequeña prueba de conexión (opcional, pero recomendada)
+        ollama.show(model_name)
+        print(f"✅ Conectado exitosamente con Ollama. Modelo: {model_name}")
+    except Exception as e:
+        print(f"⚠️ Error: No se detecta el modelo '{model_name}'. Ejecuta 'ollama run {model_name}' en tu terminal.")
+        return None
+
+    # En lugar de devolver un objeto 'pipeline' complejo y pesado, 
+    # devolvemos el nombre del modelo. Esto actuará como tu 'pipe'.
+    return model_name
+
+
+def LLM_output(pipe, system, prompt, max_new_tokens):
+    # 'pipe' ahora es el string "llama3.2" que nos dio la función de arriba.
+    
+    messages = [
+        {"role": "system", "content": system}, # system, como quiero que actue
+        {"role": "user", "content": prompt},   # prompt, lo que le pido
+    ]
+
+    # Llamada a la API de Ollama
+    # Mapeamos 'max_new_tokens' a 'num_predict' que es como lo llama Ollama
+    response = ollama.chat(
+        model=pipe, 
+        messages=messages,
+        options={
+            "num_predict": max_new_tokens, 
+            "temperature": 0.9 # Mantenemos la temperatura que tenías antes
+        }
+    )
+
+    # Devolvemos directamente el contenido limpio.
+    # Tu código antiguo tenía que navegar por listas complejas ([0]['generated_text']...),
+    # Ollama nos lo da más fácil:
+    return response['message']['content']

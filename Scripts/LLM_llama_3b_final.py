@@ -1,3 +1,4 @@
+'''
 import os
 import re
 import torch
@@ -115,3 +116,86 @@ for mini_prompt in prompt_List[:]:
         LLM_output(system1,mini_prompt,200)
 print()
 LLM_output(system_intro,"Conclusión",200)
+
+'''
+
+import os
+import ollama
+
+# --- CONFIGURACIÓN ---
+# Ya no hacen falta rutas, ni tokens, ni torch.
+# Solo definimos el nombre del modelo que ya descargaste en la terminal.
+MODELO = "llama3.2" 
+
+# --- FUNCIÓN GENERADORA ---
+def LLM_output(system, prompt, max_new_tokens):
+    messages = [
+        {"role": "system", "content": system}, # system, como quiero que actue
+        {"role": "user", "content": prompt},   # prompt, lo que le pido
+    ]
+    
+    # Llamamos a Ollama con stream=True para simular el "TextStreamer" que tenías antes
+    # (que vaya escribiendo palabra por palabra en la consola)
+    stream = ollama.chat(
+        model=MODELO,
+        messages=messages,
+        stream=True,
+        options={
+            "num_predict": max_new_tokens, # Equivalente a max_new_tokens
+            "temperature": 0.7             # Equivalente a tu temperature=0.7
+        }
+    )
+    
+    # Bucle para imprimir en tiempo real (reemplaza al TextStreamer)
+    for chunk in stream:
+        print(chunk['message']['content'], end='', flush=True)
+    
+    # Salto de línea al terminar la respuesta
+    print()
+
+
+# --- LÓGICA DE TU ARCHIVO (INTACTA) ---
+
+# Procesamiento de Rutas desde Archivo
+file_path = "test_2.txt" 
+
+try:
+    with open(file_path, 'r', encoding='utf-8') as f:
+        prompt_content = f.read()
+    print(f"✅ Contenido cargado exitosamente desde '{file_path}'")
+except FileNotFoundError:
+    print(f"❌ Error: El archivo '{file_path}' no se encontró.")
+    prompt_content = ""
+except Exception as e:
+    print(f"❌ Ocurrió un error al leer el archivo '{file_path}': {e}")
+    prompt_content = ""
+
+# Dividir el contenido del archivo
+prompt_List = prompt_content.split('\n')
+
+# Definición de las instrucciones para el "system"
+system1 = """ Eres un recomendador de planes turisticos agradable y con energía. Cuando te digan un elemento quiero que lo reformules haciendolo algo más breve pero que sea atractivo
+para un nuevo usario que lo lea. Cita siempre el nombre del elemento en negrita. Si puedes introducelo todo en dos lineas. No inventes ."""
+
+system_intro = """ Eres un recomendador de planes turisticos agradable y con energía. Cuando te hablen genera una introducción o conlusión en una linea. Esta debe estar orientada en Asturias"""
+
+# Lista de palabras clave
+principal = ['Alojamiento:','Desayuno:','Lugar turístico:','Comida:','Lugares turísticos:','Cena:']
+
+# --- EJECUCIÓN ---
+
+LLM_output(system_intro, "Introducción", 200)
+print() # Espacio visual
+
+for mini_prompt in prompt_List[:]:
+    # Limpiamos espacios en blanco por si acaso
+    clean_prompt = mini_prompt.strip() 
+    
+    if 'Día' in clean_prompt or clean_prompt in principal or clean_prompt == '':
+        print(mini_prompt)
+    else:
+        # Aquí llamamos a la función que ahora usa Ollama
+        LLM_output(system1, mini_prompt, 200)
+
+print()
+LLM_output(system_intro, "Conclusión", 200)
