@@ -1,0 +1,7 @@
+recomendastur_env/
+Pruebas/
+Scripts/__pycache__
+Itinerarios/__pycache__/
+Scripts/.env
+Itinerarios/
+generar_itinerario_v1.py
