@@ -65,6 +65,11 @@ if 'executed_response' not in st.session_state:
     st.session_state.executed_response = False
 
 # ============================== INPUTS USUARIO (Barra Lateral) ==============================
+
+st.sidebar.image("Logo-recomendastur.png", use_container_width=True)
+st.sidebar.image("Logo-talento-blanco.png", use_container_width=True)
+
+
 st.sidebar.title("Parámetros del Viaje")
 
 # Selección de fechas
@@ -83,20 +88,20 @@ else:
 tipo_viaje = st.sidebar.selectbox("Tipo de viaje", ["Solo", "Pareja", "Familia", "Amigos"])
 if tipo_viaje == "Solo":
     n_personas = 1
-    ninos = "N"
+    ninos = "No"
 elif tipo_viaje == "Pareja":
     n_personas = 2
-    ninos = "N"
+    ninos = "No"
 else: # Para "Familia" o "Amigos"
     n_personas = st.sidebar.number_input("Número de personas", min_value=1, value=3)
-    ninos = "N" # Valor por defecto
+    ninos = "No" # Valor por defecto
 
     if tipo_viaje == "Familia": # Solo preguntar por niños si es Familia
-        ninos = st.sidebar.radio("¿Viajan niños?", ["S", "N"], index=1) # index=1 para 'N' por defecto
+        ninos = st.sidebar.radio("¿Viajan niños?", ["Sí", "No"], index=1) # index=1 para 'N' por defecto
 
 # Opción de coche y radio de búsqueda
-coche = st.sidebar.radio("¿Dispones de coche?", ["S", "N"], index=0) # index=0 para 'S' por defecto
-if coche == "S":
+coche = st.sidebar.radio("¿Dispones de coche?", ["Sí", "No"], index=0) # index=0 para 'S' por defecto
+if coche == "Sí":
     radio = st.sidebar.number_input("Radio máximo de búsqueda (km)", min_value=5.0, value=30.0, help="Distancia máxima desde el alojamiento para buscar puntos de interés.")
 else:
     radio = 5.0 # Radio más pequeño si no hay coche, asumiendo movilidad a pie/transporte público.
@@ -135,6 +140,9 @@ else: # Múltiples zonas
     num_max_zonas_input = max(1, min(dias, 7)) # Mínimo 1, máximo 7 o los días totales
 
     for i in range(num_max_zonas_input):
+        if dias_ya_asignados_tracker >= dias:
+            st.sidebar.success("✅ Todos los días ya han sido asignados a zonas.")
+            break
         with zonas_multi_container.expander(f"Configurar Zona {i+1}", expanded=(i==0 and dias_ya_asignados_tracker < dias)):
             zona_actual_multi_ui = st.text_input(f"Nombre de la zona {i+1}", key=f"zona_multi_name_{i}")
             
@@ -179,7 +187,7 @@ else: # Múltiples zonas
 # El botón se habilita solo si la suma de días coincide y las zonas son válidas
 can_generate = (dias > 0 and zonas_ui and dias_zona_ui and sum(dias_zona_ui) == dias and zona_valida_flag)
 
-if st.sidebar.button("Generar Itinerario", disabled=not can_generate):
+if st.sidebar.button("📍 Generar Itinerario", disabled=not can_generate):
     if not can_generate:
         st.error("Por favor, completa correctamente todos los parámetros del viaje en la barra lateral.")
         # No se detiene, solo muestra el error
@@ -225,31 +233,54 @@ if st.sidebar.button("Generar Itinerario", disabled=not can_generate):
 #####################################################################################################################################
 
 if st.session_state.texto_itinerario:
-    st.subheader("Itinerario Base Generado:")
-    st.text_area("Aquí está el itinerario generado con los parámetros seleccionados.", st.session_state.texto_itinerario, height=300, key="base_itinerary_display")
+    # st.subheader("Itinerario Base Generado:")
+    # st.text_area("Aquí está el itinerario generado con los parámetros seleccionados.", st.session_state.texto_itinerario, height=300, key="base_itinerary_display")
 
-    col1, col2 = st.columns(2) # Dos columnas para el botón de LLM y el de descarga original
+    # col1, col2 = st.columns(2) # Dos columnas para el botón de LLM y el de descarga original
 
-    with col1:
-        if st.button("✨ Reformatear con LLM"):
-            if not st.session_state.texto_itinerario:
-                st.error("Primero genera un itinerario base para poder reformatearlo.")
-            elif not pipe:
-                st.error("Añade tu nombre de usuario o descarga el modelo Llama-3.2-3B-Instruct.")
-            else:
-                    st.session_state.execute_llm_model=True
-                    # Importaciones de transformers se hacen aquí para que solo se carguen cuando se necesite
-    with col2:
-        if st.session_state.show_download_original:
-            nombre_archivo_original = st.text_input("Nombre para el archivo original (sin .txt)", value="itinerario_original", key="fname_orig")
-            st.download_button(
-                label="📥 Descargar Itinerario Original",
-                data=st.session_state.texto_itinerario,
-                file_name=f"{nombre_archivo_original}.txt" if nombre_archivo_original else "itinerario_original.txt",
-                mime="text/plain",
-                key="download_orig_btn",
-                help="Descarga el itinerario tal como fue generado inicialmente."
-            )
+    if st.session_state.show_download_original:
+        st.subheader("🗺️ Itinerario Base:")
+        nombre_archivo_original = st.text_input("Nombre para el archivo original (sin .txt)", value="itinerario_original", key="fname_orig")
+        st.download_button(
+            label="📥 Descargar Itinerario Original",
+            data=st.session_state.texto_itinerario,
+            file_name=f"{nombre_archivo_original}.txt" if nombre_archivo_original else "itinerario_original.txt",
+            mime="text/plain",
+            key="download_orig_btn",
+            help="Descarga el itinerario tal como fue generado inicialmente."
+        )
+
+
+ 
+    if st.sidebar.button("✨ Reformatear con LLM"):
+        if not st.session_state.texto_itinerario:
+            st.error("Primero genera un itinerario base para poder reformatearlo.")
+        elif not pipe:
+            st.error("Añade tu nombre de usuario o descarga el modelo Llama-3.2-3B-Instruct.")
+        else:
+                st.session_state.execute_llm_model=True
+                # Importaciones de transformers se hacen aquí para que solo se carguen cuando se necesite
+
+    # with col1:
+    #     if st.button("✨ Reformatear con LLM"):
+    #         if not st.session_state.texto_itinerario:
+    #             st.error("Primero genera un itinerario base para poder reformatearlo.")
+    #         elif not pipe:
+    #             st.error("Añade tu nombre de usuario o descarga el modelo Llama-3.2-3B-Instruct.")
+    #         else:
+    #                 st.session_state.execute_llm_model=True
+    #                 # Importaciones de transformers se hacen aquí para que solo se carguen cuando se necesite
+    # with col2:
+    #     if st.session_state.show_download_original:
+    #         nombre_archivo_original = st.text_input("Nombre para el archivo original (sin .txt)", value="itinerario_original", key="fname_orig")
+    #         st.download_button(
+    #             label="📥 Descargar Itinerario Original",
+    #             data=st.session_state.texto_itinerario,
+    #             file_name=f"{nombre_archivo_original}.txt" if nombre_archivo_original else "itinerario_original.txt",
+    #             mime="text/plain",
+    #             key="download_orig_btn",
+    #             help="Descarga el itinerario tal como fue generado inicialmente."
+    #         )
 #####################################################################################################################################
 ################################################## GENERAR LLM ################################
 #####################################################################################################################################
@@ -267,13 +298,13 @@ if st.session_state.execute_llm_model:
 
         #st.stop()
 
-    st.subheader("Itinerario Reformulado y Mejorado por IA ✨:")
+    st.subheader("✨ Itinerario Reformulado y Mejorado por IA:")
     # Usamos st.markdown para renderizar el texto con formato (negritas, encabezados)
     prompt_List=st.session_state.texto_itinerario.split('\n')
     system1=""" Eres un recomendador de planes turisticos agradable y con energía. Cuando te digan un elemento quiero que lo reformules haciendolo algo más breve pero que sea atractivo
     para un nuevo usario que lo lea. Cita siempre el nombre del elemento en negrita. Si puedes introducelo todo en dos lineas. No inventes ."""
     system_intro=""" Eres un recomendador de planes turisticos agradable y con energía. Cuando te hablen genera una introducción o conlusión en una linea. Esta debe estar orientada en Asturias"""
-    principal=['- Hoteles:'] # ,'Desayuno:','Comida:','Cena:','Lugares turísticos'
+    # principal=['- Hoteles:'] # ,'Desayuno:','Comida:','Cena:','Lugares turísticos'
     # 🔹 Detectamos si existe la sección de "Eventos:"
     if "Eventos:" in prompt_List:
         idx_eventos = prompt_List.index("Eventos:")
@@ -290,9 +321,9 @@ if st.session_state.execute_llm_model:
         st.write(respuesta)
         st.write("")
         for mini_prompt in seccion_reformatear:  
-            if 'RUTA' in mini_prompt or mini_prompt in principal or mini_prompt=='':
-                st.write()
-                if 'RUTA' in mini_prompt or mini_prompt in principal:
+            if 'RUTA' in mini_prompt or "Precio diario" in mini_prompt or "Precio total:" in mini_prompt  or mini_prompt=='':# or mini_prompt in principal
+                # st.write()
+                if 'RUTA' in mini_prompt or "Precio diario" in mini_prompt or "Precio total:" in mini_prompt : # or mini_prompt in principal
                     st.session_state.llm_reformatted_itinerario+=mini_prompt+"\n"
                     st.write(mini_prompt)
                 else:
